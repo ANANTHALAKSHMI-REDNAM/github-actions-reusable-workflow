@@ -11,6 +11,11 @@ on:
         type: string
         default: "3.12"
 
+    secrets:
+
+      POC_MESSAGE:
+        required: true
+
 jobs:
 
   lint:
@@ -54,6 +59,12 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
           cache: "pip"
+
+      - name: Test reusable secret
+        env:
+          POC_MESSAGE: ${{ secrets.POC_MESSAGE }}
+        run: |
+          echo "Secret was received by reusable workflow"
 
       - name: Install dependencies
         run: |
