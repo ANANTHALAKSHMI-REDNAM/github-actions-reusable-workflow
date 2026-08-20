@@ -16,6 +16,14 @@ on:
         required: true
         type: string
 
+
+      version:
+        description: "Docker image version"
+        required: false
+        type: string
+        default: "latest"
+
+
     secrets:
 
       POC_MESSAGE:
@@ -105,12 +113,12 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ inputs.docker-image }}:latest .
+          docker build -t ${{ inputs.docker-image }}:${{ inputs.version }}  .
 
       - name: Run Docker container
         run: |
-          docker run ${{ inputs.docker-image }}:latest
+          docker run ${{ inputs.docker-image }}:${{ inputs.version }}
 
       - name: Push Docker image
         run: |
-          docker push ${{ inputs.docker-image }}:latest
+          docker push ${{ inputs.docker-image }}:${{ inputs.version }}
