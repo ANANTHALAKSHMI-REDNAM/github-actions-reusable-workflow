@@ -1,4 +1,4 @@
-name: Reusable Python CI
+name: Reusable Python CI/CD
 
 on:
   workflow_call:
@@ -16,19 +16,16 @@ on:
         required: true
         type: string
 
-
       version:
         description: "Docker image version"
-        required: false
+        required: true
         type: string
-        default: "latest"
 
       deploy:
         description: "Whether to deploy the application"
         required: false
         type: boolean
         default: true
-
 
     secrets:
 
@@ -37,6 +34,10 @@ on:
 
 
 jobs:
+
+  # ==================================================
+  # JOB 1: LINT
+  # ==================================================
 
   lint:
 
@@ -63,6 +64,10 @@ jobs:
           ruff check .
 
 
+  # ==================================================
+  # JOB 2: TEST
+  # ==================================================
+
   test:
 
     needs: lint
@@ -84,7 +89,7 @@ jobs:
         env:
           POC_MESSAGE: ${{ secrets.POC_MESSAGE }}
         run: |
-          echo "Secret was received by reusable workflow"
+          echo "Reusable secret received successfully"
 
       - name: Install dependencies
         run: |
@@ -94,6 +99,10 @@ jobs:
         run: |
           pytest
 
+
+  # ==================================================
+  # JOB 3: DOCKER BUILD + GHCR
+  # ==================================================
 
   docker:
 
@@ -119,15 +128,23 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ inputs.docker-image }}:${{ inputs.version }}  .
+          docker build \
+            -t ${{ inputs.docker-image }}:${{ inputs.version }} .
 
       - name: Run Docker container
         run: |
-          docker run ${{ inputs.docker-image }}:${{ inputs.version }}
+          docker run \
+            ${{ inputs.docker-image }}:${{ inputs.version }}
 
       - name: Push Docker image
         run: |
-          docker push ${{ inputs.docker-image }}:${{ inputs.version }}
+          docker push \
+            ${{ inputs.docker-image }}:${{ inputs.version }}
+
+
+  # ==================================================
+  # JOB 4: DEPLOY TO DEV
+  # ==================================================
 
   deploy-dev:
 
@@ -142,10 +159,26 @@ jobs:
     steps:
 
       - name: Deploy to DEV
+        env:
+          ENV_NAME: ${{ vars.ENV_NAME }}
+          DEPLOY_URL: ${{ vars.DEPLOY_URL }}
+          VERSION: ${{ inputs.version }}
+          DOCKER_IMAGE: ${{ inputs.docker-image }}
+
         run: |
-          echo "Deploying version ${{ inputs.version }}"
-          echo "Docker image: ${{ inputs.docker-image }}:${{ inputs.version }}"
+          echo "======================================"
+          echo "DEV DEPLOYMENT"
+          echo "======================================"
+          echo "Environment: ${ENV_NAME}"
+          echo "Deployment URL: ${DEPLOY_URL}"
+          echo "Docker Image: ${DOCKER_IMAGE}:${VERSION}"
+          echo "Version: ${VERSION}"
           echo "Application deployed successfully to DEV"
+
+
+  # ==================================================
+  # JOB 5: DEPLOY TO PROD
+  # ==================================================
 
   deploy-prod:
 
@@ -160,7 +193,22 @@ jobs:
     steps:
 
       - name: Deploy to PROD
+        env:
+          ENV_NAME: ${{ vars.ENV_NAME }}
+          DEPLOY_URL: ${{ vars.DEPLOY_URL }}
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          VERSION: ${{ inputs.version }}
+          DOCKER_IMAGE: ${{ inputs.docker-image }}
+
         run: |
-          echo "Deploying version ${{ inputs.version }}"
-          echo "Docker image: ${{ inputs.docker-image }}:${{ inputs.version }}"
+          echo "======================================"
+          echo "PROD DEPLOYMENT"
+          echo "======================================"
+          echo "Environment: ${ENV_NAME}"
+          echo "Deployment URL: ${DEPLOY_URL}"
+          echo "Docker Image: ${DOCKER_IMAGE}:${VERSION}"
+          echo "Version: ${VERSION}"
+          echo "Deployment token received"
+
+          # Real deployment command goes here
           echo "Application deployed successfully to PROD"
