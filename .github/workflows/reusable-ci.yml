@@ -23,6 +23,12 @@ on:
         type: string
         default: "latest"
 
+      deploy:
+        description: "Whether to deploy the application"
+        required: false
+        type: boolean
+        default: true
+
 
     secrets:
 
@@ -122,3 +128,39 @@ jobs:
       - name: Push Docker image
         run: |
           docker push ${{ inputs.docker-image }}:${{ inputs.version }}
+
+  deploy-dev:
+
+    needs: docker
+
+    if: ${{ inputs.deploy }}
+
+    runs-on: ubuntu-latest
+
+    environment: dev
+
+    steps:
+
+      - name: Deploy to DEV
+        run: |
+          echo "Deploying version ${{ inputs.version }}"
+          echo "Docker image: ${{ inputs.docker-image }}:${{ inputs.version }}"
+          echo "Application deployed successfully to DEV"
+
+  deploy-prod:
+
+    needs: deploy-dev
+
+    if: ${{ inputs.deploy }}
+
+    runs-on: ubuntu-latest
+
+    environment: prod
+
+    steps:
+
+      - name: Deploy to PROD
+        run: |
+          echo "Deploying version ${{ inputs.version }}"
+          echo "Docker image: ${{ inputs.docker-image }}:${{ inputs.version }}"
+          echo "Application deployed successfully to PROD"
